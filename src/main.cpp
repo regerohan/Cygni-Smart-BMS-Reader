@@ -1,31 +1,55 @@
 // Import required libraries
-#ifdef ESP32
-  #include <WiFi.h>
-  #include <ESPAsyncWebServer.h>
-  #include <SPIFFS.h>
-#else
-  #include <Arduino.h>
-  #include <ESP8266WiFi.h>
-  #include <Hash.h>
-  #include <ESPAsyncTCP.h>
-  #include <ESPAsyncWebServer.h>
-  #include <FS.h>
-#endif
+#include <Arduino.h>
+#include <ESP8266WiFi.h>
+#include <Hash.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <FS.h>
 #include <Wire.h>
-// #include <Adafruit_Sensor.h>
-// #include <Adafruit_BME280.h>
 
 // Replace with your network credentials
 const char* ssid = "Android";
 const char* password = "atmega328p";
 
+// Assign Rs485DDIR to GPIO15 (RE DE)
+#define Rs485DDIR 15
+
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
+// Read the State of Charge from BMS
 String readRS485soc() {
+  // Host command for Volatage, Pack Current & SOC
+  byte Omessage[] = {0xA5, 0x40, 0x90, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7D};
+  byte Imessage[] = {0x05, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   
-  float t = random(56);
-  
+/*
+ 0xA5, 0x40, 0x90, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7D
+    |      |    |     |     |     |     |     |     |     |     |     |     |
+    |      |    |     |     |     |     |     |     |     |     |     |     ------ Checksum
+    |      |    |     |     |     |     |     |     |     |     |     ------------ SOC
+    |      |    |     |     |     |     |     |     |     |     ------------------ SOC
+    |      |    |     |     |     |     |     |     |     ------------------------ Current
+    |      |    |     |     |     |     |     |     ------------------------------ Current
+    |      |    |     |     |     |     |     ------------------------------------ Reserved
+    |      |    |     |     |     |     ------------------------------------------ Reserved
+    |      |    |     |     |     ------------------------------------------------ Pack Voltage
+    |      |    |     |     ------------------------------------------------------ Pack Voltage
+    |      |    |     ------------------------------------------------------------ Data size
+    |      |    ------------------------------------------------------------------ Data ID
+    |      ----------------------------------------------------------------------- Add.
+    ------------------------------------------------------------------------------ Start Flag
+*/
+
+  digitalWrite(Rs485DDIR, HIGH);
+  delay(2);
+  Serial.write(Omessage, sizeof(Omessage));
+  delay(1);
+  digitalWrite(Rs485DDIR, LOW);
+  Serial.readBytes(Imessage, 13);
+  Imessage[10] >>= 8;
+  uint8_t t = Imessage[10] + Imessage[11];
+  t = 0.1*t; 
   if (isnan(t)) {    
     Serial.println("Failed to read from Battery");
     return "";
@@ -36,6 +60,7 @@ String readRS485soc() {
   }
 }
 
+// Read Instantaneous Current from the BMS
 String readRS485current() {
   float h = random(99);
   if (isnan(h)) {
@@ -48,6 +73,7 @@ String readRS485current() {
   }
 }
 
+// Read the value of temp sensor
 String readRS485temp() {
   float p = random(200);
   if (isnan(p)) {
@@ -69,6 +95,9 @@ void setup(){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
+  // Define DDIR Pin as output
+  pinMode(Rs485DDIR, OUTPUT);
+  digitalWrite(Rs485DDIR, LOW);
 
   // Connect to Wi-Fi
   WiFi.begin(ssid, password);
