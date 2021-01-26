@@ -17,15 +17,16 @@
     }
   </style>
 </head>
+
 <body>
   <h2>TWorks Battery Logger</h2>
-  <div id="chart-temperature" class="container"></div>
-  <div id="chart-humidity" class="container"></div>
-  <div id="chart-pressure" class="container"></div>
+  <div id="chart-soc" class="container"></div>
+  <div id="chart-current" class="container"></div>
+  <div id="chart-temp" class="container"></div>
 </body>
 <script>
 var chartT = new Highcharts.Chart({
-  chart:{ renderTo : 'chart-temperature' },
+  chart:{ renderTo : 'chart-soc' },
   title: { text: 'Battery SOC' },
   series: [{
     showInLegend: false,
@@ -42,7 +43,6 @@ var chartT = new Highcharts.Chart({
   },
   yAxis: {
     title: { text: 'SOC (Percent)' }
-    //title: { text: 'Temperature (Fahrenheit)' }
   },
   credits: { enabled: false }
 });
@@ -60,12 +60,12 @@ setInterval(function ( ) {
       }
     }
   };
-  xhttp.open("GET", "/temperature", true);
+  xhttp.open("GET", "/soc", true);
   xhttp.send();
-}, 100 ) ;
+}, 1000 ) ;
 
 var chartH = new Highcharts.Chart({
-  chart:{ renderTo:'chart-humidity' },
+  chart:{ renderTo:'chart-current' },
   title: { text: 'Current' },
   series: [{
     showInLegend: false,
@@ -99,12 +99,12 @@ setInterval(function ( ) {
       }
     }
   };
-  xhttp.open("GET", "/humidity", true);
+  xhttp.open("GET", "/current", true);
   xhttp.send();
-}, 100 ) ;
+}, 1000 ) ;
 
 var chartP = new Highcharts.Chart({
-  chart:{ renderTo:'chart-pressure' },
+  chart:{ renderTo:'chart-temp' },
   title: { text: 'Temperature' },
   series: [{
     showInLegend: false,
@@ -139,8 +139,8 @@ setInterval(function ( ) {
       }
     }
   };
-  xhttp.open("GET", "/pressure", true);
+  xhttp.open("GET", "/temp", true);
   xhttp.send();
-}, 100 ) ;
+}, 1000 ) ;
 </script>
 </html>
